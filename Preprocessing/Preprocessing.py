@@ -7,6 +7,7 @@ import json
 import csv
 import re
 import spacy
+import ast
 
 nlp = spacy.load('en_core_web_sm')
 
@@ -20,7 +21,7 @@ class Preprocessor(object):
         self.y_dict = self.loadDicModel("data/input/y_dict.json")
         # print("-----End processor initialization-----")
 
-
+    # Output Vector
     def get_output_vec(self, output_items):
         outputs = output_items.split(';')
         output = [0]*len(self.tokens_out.keys())
@@ -46,16 +47,23 @@ class Preprocessor(object):
         shuffle(lines)
         print("Lines shuffled")
         i = 1
-        # with open('resume_dataset_bert.csv', 'w', newline='') as fp:
-        with open('data/output/resume_dataset_entities.csv', 'w') as f:
+        
+        # List of roles to be removed from the resumes
+        roles_words = ['Administrator', 'Developer', 'Analyst', 'Consultant', 'Technician', 
+        'Architect', 'Specialist', 'Manager', 'Accountant', 'Associate', 
+        'Representative', 'Assistant', 'Coordinator', 'President', 'Lead', 
+        'Receptionist', 'Freelancer', 'Chief', 'Advisor', 'DBA', 'Support',
+        'Member', 'Programmer', 'Recruiter', 'Instructor', 'Intern', 'Engineer', 'Agent',
+        'Scientist', 'Expert', 'Professor', 'Director', 'Officer']
+
+        with open('data/output/updated_resume_dataset_entities.csv', 'w') as f:
             # create the csv writer
             writer = csv.writer(f)
             # writer.writerow(['Text','Software_Developer','Front_End_Developer','Network_Administrator','Web_Developer','Project_manager','Database_Administrator','Security_Analyst','Systems_Administrator','Python_Developer','Java_Developer'])
-            writer.writerow(['Text','Roles_Skills','Education','Experience','Additional_Information','Software_Developer','Front_End_Developer','Network_Administrator','Web_Developer','Project_manager','Database_Administrator','Security_Analyst','Systems_Administrator','Python_Developer','Java_Developer'])
+            writer.writerow(['Text','Skills','Education','Experience','Additional_Information','Software_Developer','Front_End_Developer','Network_Administrator','Web_Developer','Project_manager','Database_Administrator','Security_Analyst','Systems_Administrator','Python_Developer','Java_Developer'])
             
             # writer =  csv.writer(fp, delimiter = ',')
             for line in lines:
-            # line = lines[5]
                 res = {}
                 print("Processing Resume "+str(i)+"#.....")
                 i += 1
@@ -65,12 +73,27 @@ class Preprocessor(object):
                         cv = self.clean(line_items[2])
                         # print(cv)
                         res['Text']=str(cv)
-                        res['Roles_Skills']=re.split(';|,', line_items[1])
+                        res['Skills']=list(set(re.split(';|,', line_items[1])))
+                        
+                        # Removing the set of roles from Resumes
+                        removeElement = []
+                        for skill in set(res['Skills']):
+                            for role in roles_words:
+                                if((skill.lower()).find(role.lower())!=-1):
+                                    removeElement.append(skill)
+
+                        for removeEl in set(removeElement):
+                            res['Skills'].remove(removeEl)
+
+                        res['Skills']=' '.join(res['Skills'])
+
+                        # Tokenizing Resume Texts
                         cv_sents = nltk.sent_tokenize(cv)
                         experience = []
                         education = []
                         adinf = []
                         # link = []
+                        # skills = []
                         for sent in cv_sents:
                             # if 'Link' in sent:
                             #     link.append(re.findall(r'(https?://[^\s]+)', sent))
@@ -87,11 +110,13 @@ class Preprocessor(object):
                         res['Education']=str(' '.join(education))
                         res['Experience']=str(' '.join(experience))
                         res['Additional_Information']=str(' '.join(adinf))
-                        # res['Links']=' '.join(link) if len(link)!=0 else ""
                         
+                        # res['Links']=' '.join(link) if len(link)!=0 else ""
                         
                         output = self.get_output_vec(line_items[1])
                         res = res | dict(zip(self.tokens_out.keys(), output))
+                        
+                        # Writing res to csv file
                         writer.writerow(res.values())
                             
     def loadDicModel(self, file):
