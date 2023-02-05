@@ -24,21 +24,38 @@ class Preprocessor(object):
     # Output Vector
     def get_output_vec(self, output_items):
         outputs = output_items.split(';')
-        output = [0]*len(self.tokens_out.keys())
+        output = [0]*(len(self.tokens_out.keys())+1)
         tokens = []
         for y in outputs :
             y_l = y.lower()
             if y_l in self.y_dict.keys() :
                 tokens +=self.y_dict.get(y_l)
         tokens = set(tokens)
+        labels = []
+        # print("Labels for this resume:")
         for token in tokens:
-            if token in self.tokens_out :
+            if token in self.tokens_out:
+                labels.append(self.tokens_out[token])
+                # label.append(token)
                 output[self.tokens_out[token]] = 1
+        output[-1] = labels
         return output
     
     def clean(self, string):
         string = re.sub(re.compile(r'<.*?>'), '', string)
         string = re.sub(re.compile(r'[$&+,:;=?@#|\'<>^*()%!]'), '', string)
+        # string = emoji.demojize(string)
+        # string = re.sub(r'\:(.*?)\:','',string)
+        # string = str(string).lower()    #Making string Lowercase
+        # string = re.sub('\[.*?\]', '', string)
+        # #The next 2 lines remove html string
+        # string = BeautifulSoup(string, 'lxml').get_string()
+        # string = re.sub('https?://\S+|www\.\S+', '', string)
+        # string = re.sub('<.*?>+', '', string)
+        # string = re.sub('\n', '', string)
+        # string = re.sub('\w*\d\w*', '', string)
+        # # replacing everything with space except (a-z, A-Z, ".", "?", "!", ",", "'")
+        # string = re.sub(r"[^a-zA-Z?.!,¿']+", " ", string)
         return string
     
     def transform_data(self):
@@ -56,16 +73,15 @@ class Preprocessor(object):
         'Member', 'Programmer', 'Recruiter', 'Instructor', 'Intern', 'Engineer', 'Agent',
         'Scientist', 'Expert', 'Professor', 'Director', 'Officer']
 
-        with open('data/output/updated_resume_dataset_entities.csv', 'w') as f:
+        with open('data/output/dataset_entities.csv', 'w') as f:
             # create the csv writer
             writer = csv.writer(f)
-            # writer.writerow(['Text','Software_Developer','Front_End_Developer','Network_Administrator','Web_Developer','Project_manager','Database_Administrator','Security_Analyst','Systems_Administrator','Python_Developer','Java_Developer'])
-            writer.writerow(['Text','Skills','Education','Experience','Additional_Information','Software_Developer','Front_End_Developer','Network_Administrator','Web_Developer','Project_manager','Database_Administrator','Security_Analyst','Systems_Administrator','Python_Developer','Java_Developer'])
+            writer.writerow(['Text','Skills','Education','Experience','Additional_Information','Software_Developer','Front_End_Developer','Network_Administrator','Web_Developer','Project_manager','Database_Administrator','Security_Analyst','Systems_Administrator','Python_Developer','Java_Developer','Labels'])
             
             # writer =  csv.writer(fp, delimiter = ',')
             for line in lines:
                 res = {}
-                print("Processing Resume "+str(i)+"#.....")
+                # print("Processing Resume "+str(i)+"#.....")
                 i += 1
                 if line != "::::::" and not line.isspace():
                     line_items = line.split(":::")
@@ -115,7 +131,8 @@ class Preprocessor(object):
                         
                         output = self.get_output_vec(line_items[1])
                         res = res | dict(zip(self.tokens_out.keys(), output))
-                        
+                        res['Label']=output[-1]
+                        print(res)
                         # Writing res to csv file
                         writer.writerow(res.values())
                             
