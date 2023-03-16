@@ -92,14 +92,8 @@ class Preprocessor(object):
                         res['Skills']=list(set(re.split(';|,', line_items[1])))
                         
                         # Removing the set of roles from Resumes
-                        removeElement = []
-                        for skill in set(res['Skills']):
-                            for role in roles_words:
-                                if((skill.lower()).find(role.lower())!=-1):
-                                    removeElement.append(skill)
-
-                        for removeEl in set(removeElement):
-                            res['Skills'].remove(removeEl)
+                        roles_words_set = set(word.lower() for word in roles_words)
+                        res['Skills'] = list(set(skill for skill in res['Skills'] if not roles_words_set.intersection(set(skill.lower().split()))))
 
                         res['Skills']=' '.join(res['Skills'])
 
